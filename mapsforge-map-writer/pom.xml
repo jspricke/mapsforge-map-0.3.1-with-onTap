@@ -157,11 +157,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>osmosis</groupId>
+			<groupId>org.openstreetmap.osmosis</groupId>
 			<artifactId>osmosis-core</artifactId>
-			<version>0.41</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/osmosis-core-0.41.jar</systemPath>
+			<version>0.43.1</version>
 		</dependency>
 
 		<dependency>
