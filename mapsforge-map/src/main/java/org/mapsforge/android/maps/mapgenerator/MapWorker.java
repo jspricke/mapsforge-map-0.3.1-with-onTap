@@ -92,9 +92,11 @@ public class MapWorker extends PausableThread {
 		}
 
 		//boolean success = this.databaseRenderer.executeJob(mapGeneratorJob, this.tileBitmap);
-		boolean success = this.databaseRenderer.executeJob(mapGeneratorJob, this.tileBitmap);
+		boolean success = false;
 		if(this.online) {
 			success = this.mapGenerator.executeJob(mapGeneratorJob, this.tileBitmap);
+		} else {
+			success = this.databaseRenderer.executeJob(mapGeneratorJob, this.tileBitmap);
 		}
 
 		if (!isInterrupted() && success) {

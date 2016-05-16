@@ -59,6 +59,9 @@ public class FrameBuffer {
 	public boolean drawBitmap(Tile tile, Bitmap bitmap) {
 		MapPosition mapPosition = this.mapView.getMapViewPosition().getMapPosition();
 		synchronized (this) {
+			if (bitmap == null) {
+				return false;
+			}
 			if (tile.zoomLevel != mapPosition.zoomLevel) {
 				// the tile doesn't fit to the current zoom level
 				return false;

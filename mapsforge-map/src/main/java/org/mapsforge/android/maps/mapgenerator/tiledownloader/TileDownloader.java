@@ -17,6 +17,7 @@ package org.mapsforge.android.maps.mapgenerator.tiledownloader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.UnknownHostException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,12 +54,19 @@ public abstract class TileDownloader implements MapGenerator {
 
 	@Override
 	public final boolean executeJob(MapGeneratorJob mapGeneratorJob, Bitmap bitmap) {
+		InputStream inputStream = null;
 		try {
 			Tile tile = mapGeneratorJob.tile;
 			URL url = new URL(getProtocol(), getHostName(), getTilePath(tile));
-			InputStream inputStream = url.openStream();
+
+			URLConnection conn = url.openConnection();
+			conn.setReadTimeout(5000);
+			conn.setConnectTimeout(5000);
+			inputStream = conn.getInputStream();
+
 			Bitmap decodedBitmap = BitmapFactory.decodeStream(inputStream);
 			inputStream.close();
+			inputStream = null;
 
 			// check if the input stream could be decoded into a bitmap
 			if (decodedBitmap == null) {
@@ -75,9 +83,19 @@ public abstract class TileDownloader implements MapGenerator {
 		} catch (UnknownHostException e) {
 			LOG.log(Level.SEVERE, null, e);
 			return false;
-		} catch (IOException e) {
+		} catch (IOException e) { URL url;
 			LOG.log(Level.SEVERE, null, e);
 			return false;
+		} catch (NullPointerException e) {
+			LOG.log(Level.SEVERE, null, e);
+			return false;
+		} finally {
+			if (inputStream != null) {
+				try {
+					inputStream.close();
+				}
+				catch (IOException e) {}
+			}
 		}
 	}
 
@@ -112,4 +130,6 @@ public abstract class TileDownloader implements MapGenerator {
 	public final boolean requiresInternetConnection() {
 		return true;
 	}
+
+	public abstract String getAttribution();
 }

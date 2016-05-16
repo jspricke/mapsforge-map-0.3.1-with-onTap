@@ -32,7 +32,6 @@ import org.mapsforge.android.maps.mapgenerator.InMemoryTileCache;
 import org.mapsforge.android.maps.mapgenerator.JobParameters;
 import org.mapsforge.android.maps.mapgenerator.JobQueue;
 import org.mapsforge.android.maps.mapgenerator.MapGenerator;
-import org.mapsforge.android.maps.mapgenerator.MapGeneratorFactory;
 import org.mapsforge.android.maps.mapgenerator.MapGeneratorJob;
 import org.mapsforge.android.maps.mapgenerator.MapWorker;
 import org.mapsforge.android.maps.mapgenerator.TileCache;
@@ -89,7 +88,9 @@ public class MapView extends ViewGroup {
 	private final JobQueue jobQueue;
 	private final MapDatabase mapDatabase;
 	private File mapFile;
+	private File renderThemeFile;
 	private MapGenerator mapGenerator;
+	private int mapGeneratorId;
 	private final MapMover mapMover;
 	private final MapScaleBar mapScaleBar;
 	private final MapViewPosition mapViewPosition;
@@ -125,7 +126,7 @@ public class MapView extends ViewGroup {
 	 *             if the context object is not an instance of {@link MapActivity}.
 	 */
 	public MapView(Context context, AttributeSet attributeSet) {
-		this(context, attributeSet, MapGeneratorFactory.createMapGenerator(attributeSet));
+		this(context, attributeSet, new DatabaseRenderer());
 	}
 	
 	/*public MapView(Context context, AttributeSet attributeSet) {
@@ -243,7 +244,7 @@ public class MapView extends ViewGroup {
 		//this.mapController = new MapController(this);
 		
 
-		setMapGeneratorInternal(mapGenerator);
+		setMapGeneratorInternal(mapGenerator, -1);
 		
 		GeoPoint startPoint = this.mapGenerator.getStartPoint();
 		Byte startZoomLevel = this.mapGenerator.getStartZoomLevel();
@@ -272,12 +273,19 @@ public class MapView extends ViewGroup {
 	 */
 	public void setMapGenerator(MapGenerator mapGenerator) {
 		if (this.mapGenerator != mapGenerator) {
-			setMapGeneratorInternal(mapGenerator);
+			setMapGeneratorInternal(mapGenerator, -1);
+			clearAndRedrawMapView();
+		}
+	}
+
+	public void setMapGenerator(MapGenerator mapGenerator, int id) {
+		if (this.mapGenerator != mapGenerator) {
+			setMapGeneratorInternal(mapGenerator, id);
 			clearAndRedrawMapView();
 		}
 	}
 	
-	private void setMapGeneratorInternal(MapGenerator mapGenerator) {
+	private void setMapGeneratorInternal(MapGenerator mapGenerator, int id) {
 		if (mapGenerator == null) {
 			throw new IllegalArgumentException("mapGenerator must not be null");
 		}
@@ -289,6 +297,7 @@ public class MapView extends ViewGroup {
 			//((DatabaseRenderer) mapGenerator).setMapDatabase(this.mapDatabase);
 			this.mapWorker.setOnline(false);
 		}
+		this.mapGeneratorId = id;
 		this.mapGenerator = mapGenerator;
 		this.mapWorker.setDatabaseRenderer(this.databaseRenderer);		
 		this.mapWorker.setMapGenerator(this.mapGenerator);		
@@ -350,11 +359,19 @@ public class MapView extends ViewGroup {
 		return this.mapDatabase;
 	}
 
+	public MapGenerator getMapGenerator() {
+		return this.mapGenerator;
+	}
+
 	/**
 	 * @return the currently used map file.
 	 */
 	public File getMapFile() {
 		return this.mapFile;
+	}
+
+	public File getRenderThemeFile() {
+		return this.renderThemeFile;
 	}
 
 	/**
@@ -478,7 +495,7 @@ public class MapView extends ViewGroup {
 
 		MapPosition mapPosition = this.mapViewPosition.getMapPosition();
 
-		if (this.mapFile != null) {
+		if ((this.mapGenerator.requiresInternetConnection()) || (this.mapFile != null)) {
 			GeoPoint geoPoint = mapPosition.geoPoint;
 			double pixelLeft = MercatorProjection.longitudeToPixelX(geoPoint.longitude, mapPosition.zoomLevel);
 			double pixelTop = MercatorProjection.latitudeToPixelY(geoPoint.latitude, mapPosition.zoomLevel);
@@ -493,7 +510,7 @@ public class MapView extends ViewGroup {
 			for (long tileY = tileTop; tileY <= tileBottom; ++tileY) {
 				for (long tileX = tileLeft; tileX <= tileRight; ++tileX) {
 					Tile tile = new Tile(tileX, tileY, mapPosition.zoomLevel);
-					MapGeneratorJob mapGeneratorJob = new MapGeneratorJob(tile, this.mapFile, this.jobParameters,
+					MapGeneratorJob mapGeneratorJob = new MapGeneratorJob(tile, this.mapGenerator, this.mapGeneratorId, this.mapFile, this.jobParameters,
 							this.debugSettings);
 
 					if (this.inMemoryTileCache.containsKey(mapGeneratorJob)) {
@@ -622,6 +639,7 @@ public class MapView extends ViewGroup {
 
 		org.mapsforge.map.rendertheme.XmlRenderTheme jobTheme = new ExternalRenderTheme(renderThemeFile);
 		this.jobParameters = new JobParameters(jobTheme, this.jobParameters.textScale);
+		this.renderThemeFile = renderThemeFile;
 		clearAndRedrawMapView();
 	}
 
@@ -639,6 +657,7 @@ public class MapView extends ViewGroup {
 		}
 
 		this.jobParameters = new JobParameters(internalRenderTheme, this.jobParameters.textScale);
+		this.renderThemeFile = null;
 		clearAndRedrawMapView();
 	}
 

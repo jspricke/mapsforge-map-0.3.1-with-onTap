@@ -94,6 +94,7 @@ public class MapZoomControls {
 	 * Horizontal padding for the zoom controls.
 	 */
 	private static final int ZOOM_CONTROLS_HORIZONTAL_PADDING = 5;
+	private static final int ZOOM_CONTROLS_VERTICAL_PADDING = 15;
 
 	/**
 	 * Delay in milliseconds after which the zoom controls disappear.
@@ -232,13 +233,13 @@ public class MapZoomControls {
 		int gravity = this.zoomControlsGravity & Gravity.VERTICAL_GRAVITY_MASK;
 		switch (gravity) {
 			case Gravity.TOP:
-				return 0;
+				return 15;
 
 			case Gravity.CENTER_VERTICAL:
 				return (bottom - top - zoomControlsHeight) / 2;
 
 			case Gravity.BOTTOM:
-				return bottom - top - zoomControlsHeight;
+				return bottom - top - zoomControlsHeight - 15;
 		}
 
 		throw new IllegalArgumentException("unknown vertical gravity: " + gravity);

@@ -15,6 +15,7 @@
 package org.mapsforge.android.maps;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +40,7 @@ public abstract class MapActivity extends Activity {
 	private static final String KEY_LATITUDE = "latitude";
 	private static final String KEY_LONGITUDE = "longitude";
 	private static final String KEY_MAP_FILE = "mapFile";
+	private static final String KEY_RENDER_THEME_FILE = "renderThemeFile";
 	private static final String KEY_ZOOM_LEVEL = "zoomLevel";
 	private static final String PREFERENCES_FILE = "MapActivity";
 	private static final String PREFERENCES_VERSION_KEY = "version";
@@ -77,6 +79,12 @@ public abstract class MapActivity extends Activity {
 			if (sharedPreferences.contains(KEY_MAP_FILE)) {
 				// get and set the map file
 				mapView.setMapFile(new File(sharedPreferences.getString(KEY_MAP_FILE, null)));
+			}
+			if (sharedPreferences.contains(KEY_RENDER_THEME_FILE)) {
+				try {
+					mapView.setRenderTheme(new File(sharedPreferences.getString(KEY_RENDER_THEME_FILE, null)));
+				}
+				catch (FileNotFoundException ex) {}
 			}
 
 			// get and set the map position and zoom level
@@ -124,6 +132,10 @@ public abstract class MapActivity extends Activity {
 		if (mapView.getMapFile() != null) {
 			// save the map file
 			editor.putString(KEY_MAP_FILE, mapView.getMapFile().getAbsolutePath());
+		}
+
+		if (mapView.getRenderThemeFile() != null) {
+			editor.putString(KEY_RENDER_THEME_FILE, mapView.getRenderThemeFile().getAbsolutePath());
 		}
 
 		editor.commit();

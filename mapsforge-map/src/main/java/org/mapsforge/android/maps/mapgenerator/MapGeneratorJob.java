@@ -45,6 +45,8 @@ public class MapGeneratorJob implements Comparable<MapGeneratorJob>, Serializabl
 	public final Tile tile;
 
 	private transient int hashCodeValue;
+	private final int mapGeneratorId;
+	private final MapGenerator mapGenerator;
 	private final File mapFile;
 	private transient double priority;
 
@@ -60,8 +62,10 @@ public class MapGeneratorJob implements Comparable<MapGeneratorJob>, Serializabl
 	 * @param debugSettings
 	 *            the debug settings for this job.
 	 */
-	public MapGeneratorJob(Tile tile, File mapFile, JobParameters jobParameters, DebugSettings debugSettings) {
+	public MapGeneratorJob(Tile tile, MapGenerator mapGenerator, int mapGeneratorId, File mapFile, JobParameters jobParameters, DebugSettings debugSettings) {
 		this.tile = tile;
+		this.mapGeneratorId = mapGeneratorId;
+		this.mapGenerator = mapGenerator;
 		this.mapFile = mapFile;
 		this.jobParameters = jobParameters;
 		this.debugSettings = debugSettings;
@@ -101,12 +105,22 @@ public class MapGeneratorJob implements Comparable<MapGeneratorJob>, Serializabl
 		} else if (!this.jobParameters.equals(other.jobParameters)) {
 			return false;
 		}
-		if (this.mapFile == null) {
-			if (other.mapFile != null) {
+		if (this.mapGenerator == null) {
+			if (other.mapGenerator != null)
 				return false;
+		} else {
+			if (other.mapGenerator == null)
+				return false;
+			if (this.mapGeneratorId != other.mapGeneratorId)
+				return false;
+			if (!this.mapGenerator.requiresInternetConnection()) {
+				if (this.mapFile == null) {
+					if (other.mapFile != null) {
+						return false;
+					}
+				} else if (!this.mapFile.equals(other.mapFile))
+					return false;
 			}
-		} else if (!this.mapFile.equals(other.mapFile)) {
-			return false;
 		}
 		if (this.tile == null) {
 			if (other.tile != null) {

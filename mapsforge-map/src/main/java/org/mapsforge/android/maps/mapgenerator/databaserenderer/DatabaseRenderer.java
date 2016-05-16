@@ -161,6 +161,8 @@ public class DatabaseRenderer implements MapGenerator, RenderCallback {
 	 * @return true if the job was executed successfully, false otherwise.
 	 */
 	public boolean executeJob(MapGeneratorJob mapGeneratorJob, android.graphics.Bitmap bitmap) {
+		if (mapGeneratorJob == null)
+			return false;
 		this.currentTile = mapGeneratorJob.tile;
 
 		XmlRenderTheme jobTheme = mapGeneratorJob.jobParameters.jobTheme;

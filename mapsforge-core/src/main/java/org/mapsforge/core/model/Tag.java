@@ -53,7 +53,7 @@ public class Tag implements Serializable {
 	}
 
 	private Tag(String tag, int splitPosition) {
-		this(tag.substring(0, splitPosition), tag.substring(splitPosition + 1));
+		this(tag.substring(0, splitPosition), splitPosition == tag.length() - 1 ? "" : tag.substring(splitPosition + 1));
 	}
 
 	@Override
