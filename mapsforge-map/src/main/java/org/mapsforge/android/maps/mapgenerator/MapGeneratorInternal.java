@@ -10,12 +10,30 @@
  * PARTICULAR PURPOSE. See the GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License along with
- * this program. If not, see &lt;http://www.gnu.org/licenses/&gt;.
+ * this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.mapsforge.android.maps.inputhandling;
+package org.mapsforge.android.maps.mapgenerator;
 
-import org.mapsforge.core.model.GeoPoint;
+/**
+ * Enumeration of all internal MapGenerator implementations.
+ */
+public enum MapGeneratorInternal {
+	/**
+	 * Map tiles are rendered offline.
+	 */
+	DATABASE_RENDERER,
 
-public interface TapEventListener {
-	void onTap(GeoPoint p);
+	/**
+	 * Map tiles are downloaded from the Mapnik server.
+	 * 
+	 * @see <a href="http://wiki.openstreetmap.org/wiki/Mapnik">Mapnik</a>
+	 */
+	MAPNIK,
+
+	/**
+	 * Map tiles are downloaded from the OpenCycleMap server.
+	 * 
+	 * @see <a href="http://opencyclemap.org/">OpenCycleMap</a>
+	 */
+	OPENCYCLEMAP;
 }

@@ -54,7 +54,6 @@ public class ListOverlay implements Overlay {
 			return this.overlayItems;
 		}
 	}
-
 	@Override
 	public int compareTo(Overlay o) {
 		// TODO Auto-generated method stub

@@ -32,8 +32,10 @@ public class MapWorker extends PausableThread {
 	private final TileCache fileSystemTileCache;
 	private final TileCache inMemoryTileCache;
 	private final JobQueue jobQueue;
+	private MapGenerator mapGenerator;
 	private final MapView mapView;
 	private final Bitmap tileBitmap;
+	private Boolean online;
 
 	/**
 	 * @param mapView
@@ -41,11 +43,21 @@ public class MapWorker extends PausableThread {
 	 */
 	public MapWorker(MapView mapView) {
 		super();
+		this.online = false;
 		this.mapView = mapView;
 		this.jobQueue = mapView.getJobQueue();
 		this.inMemoryTileCache = mapView.getInMemoryTileCache();
 		this.fileSystemTileCache = mapView.getFileSystemTileCache();
 		this.tileBitmap = Bitmap.createBitmap(Tile.TILE_SIZE, Tile.TILE_SIZE, Bitmap.Config.RGB_565);
+	}
+	
+	/**
+	 * @param online
+	 * 			set MapWorker for online or offline job
+	 */
+	
+	public void setOnline(Boolean online) {
+		this.online = online;
 	}
 
 	/**
@@ -54,6 +66,14 @@ public class MapWorker extends PausableThread {
 	 */
 	public void setDatabaseRenderer(DatabaseRenderer databaseRenderer) {
 		this.databaseRenderer = databaseRenderer;
+	}
+	
+	/**
+	 * @param mapGenerator
+	 *            the MapGenerator which this MapWorker should use.
+	 */
+	public void setMapGenerator(MapGenerator mapGenerator) {
+		this.mapGenerator = mapGenerator;
 	}
 
 	@Override
@@ -71,7 +91,11 @@ public class MapWorker extends PausableThread {
 			return;
 		}
 
+		//boolean success = this.databaseRenderer.executeJob(mapGeneratorJob, this.tileBitmap);
 		boolean success = this.databaseRenderer.executeJob(mapGeneratorJob, this.tileBitmap);
+		if(this.online) {
+			success = this.mapGenerator.executeJob(mapGeneratorJob, this.tileBitmap);
+		}
 
 		if (!isInterrupted() && success) {
 			if (this.mapView.getFrameBuffer().drawBitmap(mapGeneratorJob.tile, this.tileBitmap)) {

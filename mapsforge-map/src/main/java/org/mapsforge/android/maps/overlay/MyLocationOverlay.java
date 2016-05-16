@@ -235,7 +235,6 @@ public class MyLocationOverlay implements LocationListener, Overlay {
 		this.myLocationEnabled = true;
 		return true;
 	}
-
 	@Override
 	public int compareTo(Overlay o) {
 		// TODO Auto-generated method stub

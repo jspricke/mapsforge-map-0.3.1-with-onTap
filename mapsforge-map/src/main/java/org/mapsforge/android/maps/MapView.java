@@ -23,20 +23,23 @@ import java.util.Collections;
 import java.util.List;
 
 import org.mapsforge.android.AndroidUtils;
-import org.mapsforge.android.maps.inputhandling.MapMover;
 import org.mapsforge.android.maps.inputhandling.TapEventListener;
+import org.mapsforge.android.maps.inputhandling.MapMover;
 import org.mapsforge.android.maps.inputhandling.TouchEventHandler;
 import org.mapsforge.android.maps.inputhandling.ZoomAnimator;
 import org.mapsforge.android.maps.mapgenerator.FileSystemTileCache;
 import org.mapsforge.android.maps.mapgenerator.InMemoryTileCache;
 import org.mapsforge.android.maps.mapgenerator.JobParameters;
 import org.mapsforge.android.maps.mapgenerator.JobQueue;
+import org.mapsforge.android.maps.mapgenerator.MapGenerator;
+import org.mapsforge.android.maps.mapgenerator.MapGeneratorFactory;
 import org.mapsforge.android.maps.mapgenerator.MapGeneratorJob;
 import org.mapsforge.android.maps.mapgenerator.MapWorker;
 import org.mapsforge.android.maps.mapgenerator.TileCache;
 import org.mapsforge.android.maps.mapgenerator.databaserenderer.DatabaseRenderer;
 import org.mapsforge.android.maps.overlay.Overlay;
 import org.mapsforge.android.maps.overlay.OverlayController;
+//import org.mapsforge.android.maps.overlay.OverlayList;
 import org.mapsforge.core.model.GeoPoint;
 import org.mapsforge.core.model.MapPosition;
 import org.mapsforge.core.model.Tile;
@@ -76,7 +79,7 @@ public class MapView extends ViewGroup {
 	private static final int DEFAULT_TILE_CACHE_SIZE_FILE_SYSTEM = 100;
 	private static final int DEFAULT_TILE_CACHE_SIZE_IN_MEMORY = 20;
 
-	private final DatabaseRenderer databaseRenderer;
+	private DatabaseRenderer databaseRenderer;
 	private DebugSettings debugSettings;
 	private final TileCache fileSystemTileCache;
 	private final FpsCounter fpsCounter;
@@ -86,6 +89,7 @@ public class MapView extends ViewGroup {
 	private final JobQueue jobQueue;
 	private final MapDatabase mapDatabase;
 	private File mapFile;
+	private MapGenerator mapGenerator;
 	private final MapMover mapMover;
 	private final MapScaleBar mapScaleBar;
 	private final MapViewPosition mapViewPosition;
@@ -105,8 +109,12 @@ public class MapView extends ViewGroup {
 	 *             if the context object is not an instance of {@link MapActivity}.
 	 */
 	public MapView(Context context) {
-		this(context, null);
+		this(context, null, new DatabaseRenderer());
 	}
+	
+	/*public MapView(Context context) {
+		this(context, null);
+	}*/
 
 	/**
 	 * @param context
@@ -117,6 +125,10 @@ public class MapView extends ViewGroup {
 	 *             if the context object is not an instance of {@link MapActivity}.
 	 */
 	public MapView(Context context, AttributeSet attributeSet) {
+		this(context, attributeSet, MapGeneratorFactory.createMapGenerator(attributeSet));
+	}
+	
+	/*public MapView(Context context, AttributeSet attributeSet) {
 		super(context, attributeSet);
 
 		if (!(context instanceof MapActivity)) {
@@ -169,6 +181,117 @@ public class MapView extends ViewGroup {
 		}
 
 		mapActivity.registerMapView(this);
+	}*/
+	
+	/**
+	 * @param context
+	 *            the enclosing MapActivity instance.
+	 * @param mapGenerator
+	 *            the MapGenerator for this MapView.
+	 * @throws IllegalArgumentException
+	 *             if the context object is not an instance of {@link MapActivity}.
+	 */
+	public MapView(Context context, MapGenerator mapGenerator) {
+		this(context, null, mapGenerator);
+	}
+
+	private MapView(Context context, AttributeSet attributeSet, MapGenerator mapGenerator) {
+		super(context, attributeSet);
+		
+		
+		if (!(context instanceof MapActivity)) {
+			throw new IllegalArgumentException("context is not an instance of MapActivity");
+		}
+		MapActivity mapActivity = (MapActivity) context;
+
+		setBackgroundColor(FrameBuffer.MAP_VIEW_BACKGROUND);
+		setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
+		setWillNotDraw(false);
+
+		this.debugSettings = new DebugSettings(false, false, false);
+		this.fileSystemTileCache = new FileSystemTileCache(DEFAULT_TILE_CACHE_SIZE_FILE_SYSTEM,
+				mapActivity.getMapViewId());
+		this.fpsCounter = new FpsCounter();
+		this.frameBuffer = new FrameBuffer(this);
+		this.inMemoryTileCache = new InMemoryTileCache(DEFAULT_TILE_CACHE_SIZE_IN_MEMORY);
+		this.jobParameters = new JobParameters(DEFAULT_RENDER_THEME, DEFAULT_TEXT_SCALE);
+		this.jobQueue = new JobQueue(this);
+		this.mapDatabase = new MapDatabase();
+		this.mapViewPosition = new MapViewPosition(this);
+		this.mapScaleBar = new MapScaleBar(this);
+		this.mapZoomControls = new MapZoomControls(context, this);
+		this.overlays = Collections.synchronizedList(new ArrayList<Overlay>());
+		this.projection = new MapViewProjection(this);
+		this.touchEventHandler = new TouchEventHandler(mapActivity, this);
+
+		this.databaseRenderer = new DatabaseRenderer(this.mapDatabase);
+
+		this.mapWorker = new MapWorker(this);
+		this.mapWorker.start();
+
+		this.mapMover = new MapMover(this);
+		//this.mapWorker.setDatabaseRenderer(this.databaseRenderer);
+		this.mapMover.start();
+
+		this.zoomAnimator = new ZoomAnimator(this);
+		this.zoomAnimator.start();
+
+		this.overlayController = new OverlayController(this);
+		this.overlayController.start();
+
+		
+		//this.mapController = new MapController(this);
+		
+
+		setMapGeneratorInternal(mapGenerator);
+		
+		GeoPoint startPoint = this.mapGenerator.getStartPoint();
+		Byte startZoomLevel = this.mapGenerator.getStartZoomLevel();
+		
+		if (mapGenerator instanceof DatabaseRenderer) {
+			startPoint = this.databaseRenderer.getStartPoint();
+			startZoomLevel = this.databaseRenderer.getStartZoomLevel();
+		}		
+		
+		if (startPoint != null) {
+			this.mapViewPosition.setCenter(startPoint);
+		}
+
+		if (startZoomLevel != null) {
+			this.mapViewPosition.setZoomLevel(startZoomLevel.byteValue());
+		}
+
+		mapActivity.registerMapView(this);
+	}
+	
+	/**
+	 * Sets the MapGenerator for this MapView.
+	 * 
+	 * @param mapGenerator
+	 *            the new MapGenerator.
+	 */
+	public void setMapGenerator(MapGenerator mapGenerator) {
+		if (this.mapGenerator != mapGenerator) {
+			setMapGeneratorInternal(mapGenerator);
+			clearAndRedrawMapView();
+		}
+	}
+	
+	private void setMapGeneratorInternal(MapGenerator mapGenerator) {
+		if (mapGenerator == null) {
+			throw new IllegalArgumentException("mapGenerator must not be null");
+		}
+		
+		this.mapWorker.setOnline(true);
+
+		if (mapGenerator instanceof DatabaseRenderer) {
+			this.databaseRenderer = new DatabaseRenderer(this.mapDatabase);
+			//((DatabaseRenderer) mapGenerator).setMapDatabase(this.mapDatabase);
+			this.mapWorker.setOnline(false);
+		}
+		this.mapGenerator = mapGenerator;
+		this.mapWorker.setDatabaseRenderer(this.databaseRenderer);		
+		this.mapWorker.setMapGenerator(this.mapGenerator);		
 	}
 
 	/**
@@ -330,11 +453,11 @@ public class MapView extends ViewGroup {
 	public boolean onTrackballEvent(MotionEvent motionEvent) {
 		return this.mapMover.onTrackballEvent(motionEvent);
 	}
-
+	
 	public void setOnTapListener(TapEventListener l) {
 		this.tapListener = l;
 	}
-
+	
 	public void onTapEvent(GeoPoint p) {
 		if (this.tapListener != null) {
 			try {

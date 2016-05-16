@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.mapsforge.android.maps.mapgenerator.MapGenerator;
 import org.mapsforge.android.maps.mapgenerator.MapGeneratorJob;
 import org.mapsforge.core.model.GeoPoint;
 import org.mapsforge.core.model.Point;
@@ -48,7 +49,7 @@ import org.xml.sax.SAXException;
 /**
  * A DatabaseRenderer renders map tiles by reading from a {@link MapDatabase}.
  */
-public class DatabaseRenderer implements RenderCallback {
+public class DatabaseRenderer implements MapGenerator, RenderCallback {
 	private static final Byte DEFAULT_START_ZOOM_LEVEL = Byte.valueOf((byte) 12);
 	private static final byte LAYERS = 11;
 	private static final Logger LOGGER = Logger.getLogger(DatabaseRenderer.class.getName());
@@ -96,7 +97,7 @@ public class DatabaseRenderer implements RenderCallback {
 	private Tile currentTile;
 	private List<List<ShapePaintContainer>> drawingLayers;
 	private final LabelPlacement labelPlacement;
-	private final MapDatabase mapDatabase;
+	private MapDatabase mapDatabase;
 	private List<PointTextContainer> nodes;
 	private final List<SymbolContainer> pointSymbols;
 	private Point poiPosition;
@@ -115,6 +116,25 @@ public class DatabaseRenderer implements RenderCallback {
 	 * @param mapDatabase
 	 *            the MapDatabase from which the map data will be read.
 	 */
+	
+	/**
+	 * Constructs a new DatabaseRenderer.
+	 */
+	public DatabaseRenderer() {
+		this.canvasRasterer = new CanvasRasterer();
+		this.labelPlacement = new LabelPlacement();
+
+		this.ways = new ArrayList<List<List<ShapePaintContainer>>>(LAYERS);
+		this.wayNames = new ArrayList<WayTextContainer>(64);
+		this.nodes = new ArrayList<PointTextContainer>(64);
+		this.areaLabels = new ArrayList<PointTextContainer>(64);
+		this.waySymbols = new ArrayList<SymbolContainer>(64);
+		this.pointSymbols = new ArrayList<SymbolContainer>(64);
+
+		PAINT_WATER_TILE_HIGHTLIGHT.setStyle(Style.FILL);
+		PAINT_WATER_TILE_HIGHTLIGHT.setColor(AndroidGraphics.INSTANCE.getColor(Color.CYAN));
+	}
+	
 	public DatabaseRenderer(MapDatabase mapDatabase) {
 		this.mapDatabase = mapDatabase;
 		this.canvasRasterer = new CanvasRasterer();
@@ -299,6 +319,19 @@ public class DatabaseRenderer implements RenderCallback {
 	public void renderWayText(String textKey, Paint fill, Paint stroke) {
 		WayDecorator.renderText(textKey, fill, stroke, this.coordinates, this.wayNames);
 	}
+	
+	@Override
+	public boolean requiresInternetConnection() {
+		return false;
+	}
+	
+	/**
+	 * @param mapDatabase
+	 *            the MapDatabase from which the map data will be read.
+	 */
+	public void setMapDatabase(MapDatabase mapDatabase) {
+		this.mapDatabase = mapDatabase;
+	}
 
 	private void clearLists() {
 		for (int i = this.ways.size() - 1; i >= 0; --i) {
@@ -314,6 +347,7 @@ public class DatabaseRenderer implements RenderCallback {
 		this.wayNames.clear();
 		this.waySymbols.clear();
 	}
+		
 
 	private void createWayLists() {
 		int levels = this.renderTheme.getLevels();
