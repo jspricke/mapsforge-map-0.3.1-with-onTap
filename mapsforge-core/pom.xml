@@ -12,6 +12,18 @@
 	<artifactId>mapsforge-core</artifactId>
 	<packaging>jar</packaging>
 
+	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<excludes>
+					<exclude>COPYING</exclude>
+					<exclude>COPYING.LESSER</exclude>
+				</excludes>
+			</resource>
+		</resources>
+	</build>
+
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
